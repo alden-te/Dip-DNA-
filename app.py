@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import plotly.graph_objects as go
-from tradingview_screener import get_all_symbols
 import warnings
 import time
+import yfinance as yf
 
 warnings.filterwarnings('ignore')
 
@@ -15,12 +15,43 @@ warnings.filterwarnings('ignore')
 
 @st.cache_data(ttl=3600)
 def get_all_bist_tickers():
-    try:
-        symbols = get_all_symbols(market='turkey')
-        return [s.split(':')[1] + '.IS' for s in symbols if 'BIST:' in s]
-    except:
-        return ["THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS"]
-
+    # tradingview_screener kaldırıldı, yerine güvenilir ve kapsamlı bir BIST listesi konuldu
+    return [
+        "THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS", "SISE.IS",
+        "AKBNK.IS", "HALKB.IS", "ISCTR.IS", "YKBNK.IS", "SAHOL.IS",
+        "TUPRS.IS", "KCHOL.IS", "SOKM.IS", "BIMAS.IS", "MGROS.IS",
+        "FROTO.IS", "TOASO.IS", "TTRAK.IS", "ALARK.IS", "ENJSA.IS",
+        "PETKM.IS", "TCELL.IS", "TTKOM.IS", "VESBE.IS", "ARCLK.IS",
+        "HEKTS.IS", "MAALT.IS", "OSTIM.IS", "PKENT.IS", "ISGYO.IS",
+        "AKSEN.IS", "AKGRT.IS", "ALBRK.IS", "ALGYO.IS", "ANSGR.IS",
+        "BANVT.IS", "BIZIM.IS", "BOLUC.IS", "BRKSN.IS", "BRYAT.IS",
+        "BSOKE.IS", "CELHA.IS", "CIMSA.IS", "DENGE.IS", "DERIM.IS",
+        "DEVA.IS", "DITAS.IS", "DOHOL.IS", "ECILC.IS", "ECZYT.IS",
+        "EGEEN.IS", "EGEGR.IS", "EMKEL.IS", "ENKAI.IS", "ERBOS.IS",
+        "ERSU.IS", "ESCOM.IS", "FENER.IS", "FLAP.IS", "FORMT.IS",
+        "GEDIK.IS", "GLYHO.IS", "GOODY.IS", "GOLTS.IS", "GRNSY.IS",
+        "GUBRF.IS", "HATEK.IS", "HUBVC.IS", "IHLAS.IS", "IHLGM.IS",
+        "ISDMR.IS", "ISFIN.IS", "ISGSY.IS", "ISYAT.IS", "IZMDC.IS",
+        "JANTS.IS", "KAREL.IS", "KARSN.IS", "KENT.IS", "KLMSN.IS",
+        "KORDS.IS", "KUTPO.IS", "KZBGY.IS", "LOGO.IS", "LUXKM.IS",
+        "MAVI.IS", "MESYO.IS", "MIATK.IS", "MPARK.IS", "MRDIN.IS",
+        "NETAS.IS", "NIBAS.IS", "OBASE.IS", "OHHUD.IS", "ONCSM.IS",
+        "ORGE.IS", "OTKAR.IS", "OYAKC.IS", "OYLUM.IS", "OYYAT.IS",
+        "PAGYO.IS", "PAPIL.IS", "PAREL.IS", "PASEU.IS", "PENTA.IS",
+        "PETUN.IS", "PINSU.IS", "PKART.IS", "PLTUR.IS", "PNSUT.IS",
+        "PRDGS.IS", "PRKAB.IS", "PRKME.IS", "PSDTC.IS", "PSGYO.IS",
+        "RAYSG.IS", "RCYAS.IS", "RYSAS.IS", "SARKY.IS", "SASA.IS",
+        "SAYAS.IS", "SDTTR.IS", "SELEC.IS", "SELGD.IS", "SERNT.IS",
+        "SEYKM.IS", "SKBNK.IS", "SKTAS.IS", "SKYLP.IS", "SMART.IS",
+        "SNGYO.IS", "SONME.IS", "SRVGY.IS", "SUGRT.IS", "SUMAS.IS",
+        "SUNTK.IS", "TATGD.IS", "TATKS.IS", "TAVHA.IS", "TEKTU.IS",
+        "TEKNO.IS", "TLMAN.IS", "TMPOL.IS", "TRGYO.IS", "TRKCM.IS",
+        "TRNCA.IS", "TSGYO.IS", "TSKB.IS", "TUCLK.IS", "TUKAS.IS",
+        "ULUUN.IS", "UNLU.IS", "UTASY.IS", "UZRGM.IS", "VAKBN.IS",
+        "VAKKO.IS", "VANET.IS", "VERUS.IS", "VKING.IS", "VKGYO.IS",
+        "YATAS.IS", "YBOYA.IS", "YESIL.IS", "YGYO.IS", "YKSLN.IS",
+        "YONGA.IS", "YUNSA.IS"
+    ]
 
 def find_80_80_pivots(df):
     lows = df['Low'].values
@@ -31,10 +62,8 @@ def find_80_80_pivots(df):
             pivots.append(i)
     return pivots
 
-
 def is_business_day(date_str):
     return pd.to_datetime(date_str).weekday() < 5
-
 
 # ============================================================================
 # BÖLÜM 2: İNDİKATÖR HESAPLAMA (pandas-ta OLMADAN)
@@ -47,7 +76,6 @@ def calc_rsi(series, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
-
 def calc_mfi(high, low, close, volume, period=14):
     tp = (high + low + close) / 3
     mf = tp * volume
@@ -55,7 +83,6 @@ def calc_mfi(high, low, close, volume, period=14):
     pos = mf.where(delta > 0, 0).rolling(window=period).sum()
     neg = mf.where(delta < 0, 0).rolling(window=period).sum()
     return 100 - (100 / (1 + pos / neg))
-
 
 def calc_stoch_rsi(rsi, period=14, k=3, d=3):
     low_rsi = rsi.rolling(window=period).min()
@@ -65,12 +92,10 @@ def calc_stoch_rsi(rsi, period=14, k=3, d=3):
     d_line = k_line.rolling(window=d).mean()
     return k_line, d_line
 
-
 def calc_williams_r(high, low, close, period=14):
     hh = high.rolling(window=period).max()
     ll = low.rolling(window=period).min()
     return -100 * ((hh - close) / (hh - ll))
-
 
 def calc_macd(close, fast=12, slow=26, signal=9):
     ema_fast = close.ewm(span=fast, adjust=False).mean()
@@ -79,7 +104,6 @@ def calc_macd(close, fast=12, slow=26, signal=9):
     signal_line = macd_line.ewm(span=signal, adjust=False).mean()
     hist = macd_line - signal_line
     return macd_line, signal_line, hist
-
 
 def calc_bbands(close, period=20, std_dev=2):
     mid = close.rolling(window=period).mean()
@@ -90,14 +114,12 @@ def calc_bbands(close, period=20, std_dev=2):
     width = ((upper - lower) / mid) * 100
     return upper, mid, lower, pct, width
 
-
 def calc_atr(high, low, close, period=14):
     tr1 = high - low
     tr2 = abs(high - close.shift(1))
     tr3 = abs(low - close.shift(1))
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     return tr.rolling(window=period).mean()
-
 
 def add_indicators(df):
     if df is None or len(df) < 100:
@@ -127,14 +149,12 @@ def add_indicators(df):
     df['Volume_SMA_20'] = df['Volume'].rolling(20).mean()
     return df
 
-
 # ============================================================================
 # BÖLÜM 3: VERİ ÇEKME VE DİP ANALİZİ
 # ============================================================================
 
 def download_stock(ticker, period="10y"):
     try:
-        import yfinance as yf
         df = yf.download(ticker, period=period, progress=False, timeout=15)
         if df.empty or len(df) < 300:
             return None
@@ -151,7 +171,6 @@ def download_stock(ticker, period="10y"):
         return df
     except:
         return None
-
 
 def analyze_dip(df, dip_idx):
     if dip_idx < 100 or dip_idx >= len(df) - 60:
@@ -197,7 +216,6 @@ def analyze_dip(df, dip_idx):
         'is_successful': 1 if pd.notna(ret_20d) and ret_20d >= 10.0 else 0
     }
 
-
 def process_stock(ticker, period="10y"):
     df = download_stock(ticker, period)
     if df is None:
@@ -215,7 +233,6 @@ def process_stock(ticker, period="10y"):
     if not dips:
         return df, None
     return df, pd.DataFrame(dips)
-
 
 # ============================================================================
 # BÖLÜM 4: CANLI TARAMA
@@ -277,7 +294,6 @@ def find_live_signals(ticker, lookback_days=30):
             })
     return signals
 
-
 # ============================================================================
 # BÖLÜM 5: STREAMLIT ARAYÜZÜ
 # ============================================================================
@@ -324,7 +340,7 @@ with st.sidebar:
         )
     period = st.selectbox("Veri Periyodu", ["5y", "10y", "15y", "20y"], index=1)
     st.markdown("---")
-    st.info(" 80-80 pivot tespiti kullanılır. Her dip için detaylı analiz yapılır.")
+    st.info("💡 80-80 pivot tespiti kullanılır. Her dip için detaylı analiz yapılır.")
 
 # ============================================================================
 # MOD 1: TEK HİSSE ANALİZİ
@@ -343,7 +359,7 @@ if analysis_mode == "Tek Hisse Analizi":
             col3.metric("Ort. RSI", f"{dips_df['rsi'].mean():.1f}")
             col4.metric("Ort. 20G Getiri", f"{dips_df['ret_20d'].mean():.1f}%")
             st.markdown("---")
-            tab1, tab2, tab3 = st.tabs(["📊 Tüm Dipler", "🎯 Güncel Sinyaller", " Grafik"])
+            tab1, tab2, tab3 = st.tabs(["📊 Tüm Dipler", "🎯 Güncel Sinyaller", "📈 Grafik"])
             with tab1:
                 st.subheader("Bulunan Dipler ve Sonrası Performans")
                 display_df = dips_df[['date', 'price', 'rsi', 'mfi', 'stoch', 'willr', 'ma_tangle', 'vol_ratio', 'price_pos', 'ret_20d', 'is_successful']].copy()
@@ -362,7 +378,7 @@ if analysis_mode == "Tek Hisse Analizi":
                     sig_df = sig_df.sort_values('rsi', ascending=True)
                     st.dataframe(sig_df, use_container_width=True)
                 else:
-                    st.warning("️ Son 30 günde kriterlere uyan sinyal yok.")
+                    st.warning("⚠️ Son 30 günde kriterlere uyan sinyal yok.")
             with tab3:
                 st.subheader(f"{ticker_input} Fiyat ve Pivot Dipler")
                 fig = go.Figure()
@@ -392,7 +408,7 @@ if analysis_mode == "Tek Hisse Analizi":
 # ============================================================================
 
 elif analysis_mode == "Çoklu Hisse Tarama":
-    st.header(" Çoklu Hisse Tarama")
+    st.header("🔍 Çoklu Hisse Tarama")
     tickers_list = [t.strip().upper() for t in tickers_text.split('\n') if t.strip()]
     tickers_list = [t if t.endswith('.IS') else t + '.IS' for t in tickers_list]
     if st.button("Taramayı Başlat", type="primary"):
@@ -426,7 +442,7 @@ elif analysis_mode == "Çoklu Hisse Tarama":
 
 elif analysis_mode == "Tüm BIST Tarama":
     st.header("🌟 Tüm BIST Tarama")
-    st.warning("⚠️ Bu işlem 600+ hisse için çalışır ve 10-15 dakika sürebilir.")
+    st.warning("⚠️ Bu işlem ~200 hisse için çalışır ve 3-5 dakika sürebilir.")
     if st.button("Tüm BIST'i Tara", type="primary"):
         all_tickers = get_all_bist_tickers()
         st.write(f"Toplam {len(all_tickers)} hisse taranacak...")
@@ -436,28 +452,4 @@ elif analysis_mode == "Tüm BIST Tarama":
         for i, t in enumerate(all_tickers):
             try:
                 df, dips_df = process_stock(t, period)
-                if dips_df is not None and not dips_df.empty:
-                    all_results.append(dips_df)
-            except:
-                pass
-            if i % 10 == 0:
-                progress_bar.progress((i + 1) / len(all_tickers))
-        progress_bar.progress(1.0)
-        elapsed = time.time() - start_time
-        st.success(f"✅ Tarama tamamlandı! Süre: {elapsed:.0f} saniye. {len(all_results)} hisse için dip bulundu.")
-        if all_results:
-            master_df = pd.concat(all_results, ignore_index=True)
-            st.subheader("🏆 En Çok Başarılı Dip Üreten Hisseler")
-            summary = master_df.groupby('ticker').agg(
-                Dip_Sayisi=('ticker', 'count'),
-                Basarili_Dip=('is_successful', 'sum'),
-                Basari_Orani=('is_successful', lambda x: f"{x.mean()*100:.1f}%"),
-                Ort_RSI=('rsi', 'mean'),
-                Ort_20G_Getiri=('ret_20d', 'mean')
-            ).sort_values('Basarili_Dip', ascending=False).reset_index()
-            st.dataframe(summary.head(50), use_container_width=True)
-            csv = master_df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8')
-            st.download_button("📥 Tüm BIST Verisini İndir (CSV)", data=csv, file_name=f"bist_tum_dipler_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv")
-
-st.markdown("---")
-st.markdown("<div style='text-align: center; color: gray;'><p>Ultra Pro Dip Analiz Sistemi v2.0 | 80-80 Pivot + Manuel İndikatörler</p></div>", unsafe_allow_html=True)
+  
