@@ -3,43 +3,35 @@ import numpy as np
 from datetime import datetime
 
 class ForensicAnalyzer:
-    """Her bar için detaylı adli tıp analizi"""
-    
     def __init__(self, indicator_calc, pivot_detector):
         self.indicator_calc = indicator_calc
         self.pivot_detector = pivot_detector
     
     def analyze_single_bar(self, df, bar_idx):
-        """Tek bir bar için TÜM detayları çıkar"""
         if bar_idx < 0 or bar_idx >= len(df):
             return None
         
         row = df.iloc[bar_idx]
         date = df.index[bar_idx]
         
-        # Fiyat bilgileri
         close = float(row['Close'])
         open_p = float(row['Open'])
         high = float(row['High'])
         low = float(row['Low'])
         volume = float(row['Volume'])
         
-        # Mum anatomisi
         body = abs(close - open_p)
         upper_wick = high - max(close, open_p)
         lower_wick = min(close, open_p) - low
         total_range = high - low if high > low else 0.0001
         
-        # Mum tipi
         is_doji = 1 if (body / total_range < 0.1) else 0
         is_hammer = 1 if (lower_wick > body * 2 and upper_wick < body * 0.5) else 0
         is_shooting_star = 1 if (upper_wick > body * 2 and lower_wick < body * 0.5) else 0
         wick_ratio = lower_wick / body if body > 0 else 0
         
-        # MA tangle ve hizalama
         ma_info = self.indicator_calc.calculate_ma_tangle(df, bar_idx)
         
-        # İndikatör değerleri
         indicators = {
             'rsi_14': float(row.get('RSI_14', np.nan)),
             'rsi_7': float(row.get('RSI_7', np.nan)),
@@ -58,7 +50,6 @@ class ForensicAnalyzer:
             'volume_ratio_20': float(row.get('Volume_Ratio_20', np.nan)),
         }
         
-        # Fiyat pozisyonu (son 20 bar)
         if bar_idx >= 20:
             lowest_20 = df['Low'].iloc[bar_idx-19:bar_idx+1].min()
             highest_20 = df['High'].iloc[bar_idx-19:bar_idx+1].max()
@@ -67,20 +58,11 @@ class ForensicAnalyzer:
         else:
             price_position = 50
         
-        # Fibonacci seviyeleri (son 100 bar)
         if bar_idx >= 100:
             swing_high = df['High'].iloc[bar_idx-100:bar_idx+1].max()
             swing_low = df['Low'].iloc[bar_idx-100:bar_idx+1].min()
             fib_diff = swing_high - swing_low
             if fib_diff > 0:
-                fib_0 = swing_low
-                fib_236 = swing_low + 0.236 * fib_diff
-                fib_382 = swing_low + 0.382 * fib_diff
-                fib_500 = swing_low + 0.5 * fib_diff
-                fib_618 = swing_low + 0.618 * fib_diff
-                fib_786 = swing_low + 0.786 * fib_diff
-                fib_1000 = swing_high
-                
                 fib_level = (swing_high - close) / fib_diff
             else:
                 fib_level = 0.5
@@ -106,36 +88,25 @@ class ForensicAnalyzer:
         }
     
     def analyze_dip_with_history(self, df, dip_idx, lookback=100, lookahead=60):
-        """
-        Bir dip için:
-        - 100 bar öncesi detaylı analiz
-        - Dip anı
-        - 60 bar sonrası performans
-        """
         if dip_idx < lookback or dip_idx >= len(df) - lookahead:
             return None
         
-        # 100 bar öncesi analiz
         pre_dip_bars = []
         for i in range(dip_idx - lookback, dip_idx):
             bar_data = self.analyze_single_bar(df, i)
             if bar_data:
                 pre_dip_bars.append(bar_data)
         
-        # Dip anı
         dip_bar = self.analyze_single_bar(df, dip_idx)
         
-        # 60 bar sonrası
         post_dip_bars = []
         for i in range(dip_idx + 1, dip_idx + lookahead + 1):
             bar_data = self.analyze_single_bar(df, i)
             if bar_data:
                 post_dip_bars.append(bar_data)
         
-        # İstatistiksel özet (100 bar öncesi)
         pre_stats = self._calculate_window_stats(pre_dip_bars)
         
-        # Sonrası performans
         dip_price = dip_bar['close']
         post_stats = self._calculate_post_performance(post_dip_bars, dip_price)
         
@@ -148,7 +119,6 @@ class ForensicAnalyzer:
         }
     
     def _calculate_window_stats(self, bars):
-        """Bir pencere için istatistiksel özet"""
         if not bars:
             return {}
         
@@ -174,7 +144,6 @@ class ForensicAnalyzer:
         return stats
     
     def _calculate_post_performance(self, post_bars, entry_price):
-        """Dip sonrası performans hesaplama"""
         if not post_bars:
             return {}
         
