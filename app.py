@@ -11,7 +11,6 @@ from modules.forensic_analyzer import ForensicAnalyzer
 from modules.dna_synthesizer import DNASynthesizer
 from modules.screener import StockScreener
 
-# Sayfa ayarları
 st.set_page_config(
     page_title="Ultra Pro Dip Analiz Sistemi",
     page_icon="📊",
@@ -19,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS özelleştirme
 st.markdown("""
     <style>
     .main-header {
@@ -36,24 +34,9 @@ st.markdown("""
         color: white;
         text-align: center;
     }
-    .success-box {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 5px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    .warning-box {
-        background-color: #fff3cd;
-        border: 1px solid #ffeeba;
-        border-radius: 5px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
     </style>
     """, unsafe_allow_html=True)
 
-# Session state initialization
 if 'data_collector' not in st.session_state:
     st.session_state.data_collector = DataCollector()
 if 'indicator_calc' not in st.session_state:
@@ -76,13 +59,11 @@ if 'screener' not in st.session_state:
         st.session_state.dna_synthesizer
     )
 
-# Ana başlık
 st.markdown('<div class="main-header"> ULTRA PRO DİP ANALİZ SİSTEMİ</div>', unsafe_allow_html=True)
 st.markdown("---")
 
-# Sidebar
 with st.sidebar:
-    st.header("️ Ayarlar")
+    st.header("⚙️ Ayarlar")
     
     analysis_mode = st.radio(
         "Analiz Modu",
@@ -107,22 +88,18 @@ with st.sidebar:
     
     st.info("💡 İpucu: 80-80 pivot tespiti kullanılır. Her dip için 100 bar öncesi detaylı analiz yapılır.")
 
-# Ana içerik
 if analysis_mode == "Tek Hisse Analizi":
     st.header(f"🔍 {ticker} Detaylı Dip Analizi")
     
     if st.button("Analizi Başlat", type="primary"):
         with st.spinner(f"{ticker} analiz ediliyor..."):
-            # Tek hisse tarama
             result = st.session_state.screener.screen_single_stock(ticker, period)
             
             if result:
                 st.success(f"✅ {ticker} için {len(result['dip_analyses'])} dip bulundu!")
                 
-                # DNA bilgileri
                 dna = result['dna']
                 
-                # Metrikler
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
@@ -157,12 +134,11 @@ if analysis_mode == "Tek Hisse Analizi":
                 
                 st.markdown("---")
                 
-                # Sekmeler
                 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                    "📈 Dip DNA Özeti",
-                    "📊 İstatistiksel Analiz",
+                    " Dip DNA Özeti",
+                    " İstatistiksel Analiz",
                     "🎯 Güncel Sinyaller",
-                    " Tüm Dipler",
+                    "📉 Tüm Dipler",
                     "📰 Detaylı Rapor"
                 ])
                 
@@ -224,7 +200,6 @@ if analysis_mode == "Tek Hisse Analizi":
                             })
                             st.dataframe(pre_stats_df, use_container_width=True)
                     
-                    # Başarılı vs Başarısız karşılaştırma
                     if dna['successful'] and dna['failed']:
                         st.markdown("---")
                         st.subheader("✅ Başarılı vs ❌ Başarısız Dip Karşılaştırması")
@@ -247,10 +222,9 @@ if analysis_mode == "Tek Hisse Analizi":
                             st.write(f"**Ort. 20G Getiri:** {dna['failed']['avg_ret_20d']:.1f}%")
                             st.write(f"**Ort. Maks. Drawdown:** {dna['failed']['avg_max_drawdown']:.1f}%")
                     
-                    # İstatistiksel anlamlılık
                     if dna['significance']:
                         st.markdown("---")
-                        st.subheader("🔬 İstatistiksel Anlamlılık Testleri (T-Test)")
+                        st.subheader(" İstatistiksel Anlamlılık Testleri (T-Test)")
                         
                         sig_df = pd.DataFrame([
                             {
@@ -268,7 +242,6 @@ if analysis_mode == "Tek Hisse Analizi":
                 with tab2:
                     st.subheader("📊 Detaylı İstatistiksel Analiz")
                     
-                    # Yüzdelikler
                     if dna['all']:
                         st.markdown("### Yüzdelik Dağılımlar (Percentiles)")
                         
@@ -317,14 +290,13 @@ if analysis_mode == "Tek Hisse Analizi":
                         signals_df = pd.DataFrame(signals)
                         signals_df = signals_df.sort_values('dna_match_score', ascending=False)
                         
-                        # Durum etiketleri
                         def get_status(row):
                             if row['price_increase_pct'] < -5:
                                 return "⚠️ Zararda"
                             elif row['price_increase_pct'] < 3:
-                                return " Bekleme"
+                                return "🟡 Bekleme"
                             elif row['price_increase_pct'] < 8:
-                                return " Hareket Başladı"
+                                return "🟢 Hareket Başladı"
                             else:
                                 return "🔴 Fırsat Kaçmış"
                         
@@ -363,14 +335,12 @@ if analysis_mode == "Tek Hisse Analizi":
                     st.dataframe(dips_df, use_container_width=True)
                 
                 with tab5:
-                    st.subheader("📰 Detaylı Analiz Raporu")
+                    st.subheader(" Detaylı Analiz Raporu")
                     
-                    # Grafik
                     df = result['df']
                     
                     fig = go.Figure()
                     
-                    # Fiyat
                     fig.add_trace(go.Candlestick(
                         x=df.index,
                         open=df['Open'],
@@ -380,7 +350,6 @@ if analysis_mode == "Tek Hisse Analizi":
                         name='Fiyat'
                     ))
                     
-                    # Pivot dipleri işaretle
                     pivot_dates = [df.index[i] for i in result['pivot_indices']]
                     pivot_prices = [df['Low'].iloc[i] for i in result['pivot_indices']]
                     
@@ -397,7 +366,6 @@ if analysis_mode == "Tek Hisse Analizi":
                         name='Pivot Dipler'
                     ))
                     
-                    # EMA'lar
                     for period in [20, 50, 200]:
                         col = f'EMA_{period}'
                         if col in df.columns:
@@ -419,13 +387,11 @@ if analysis_mode == "Tek Hisse Analizi":
                     
                     st.plotly_chart(fig, use_container_width=True)
                     
-                    # İndikatör grafikleri
                     st.markdown("### İndikatörler")
                     
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        # RSI
                         if 'RSI_14' in df.columns:
                             fig_rsi = go.Figure()
                             fig_rsi.add_trace(go.Scatter(
@@ -440,4 +406,28 @@ if analysis_mode == "Tek Hisse Analizi":
                             st.plotly_chart(fig_rsi, use_container_width=True)
                     
                     with col2:
+                        fig_vol = go.Figure()
+                        fig_vol.add_trace(go.Bar(
+                            x=df.index,
+                            y=df['Volume'],
+                            name='Hacim'
+                        ))
+                        fig_vol.update_layout(title='Hacim', height=300)
+                        st.plotly_chart(fig_vol, use_container_width=True)
+                
+            else:
+                st.error(f"❌ {ticker} için yeterli veri bulunamadı veya dip tespit edilemedi.")
+    
+    else:
+        st.info("👆 Analizi başlatmak için yukarıdaki butona tıklayın.")
 
+elif analysis_mode == "Çoklu Hisse Tarama":
+    st.header("🔍 Çoklu Hisse Tarama")
+    
+    tickers_input = st.text_area(
+        "Hisse Kodları (her satıra bir hisse)",
+        "THYAO.IS\nASELS.IS\nGARAN.IS\nEREGL.IS\nSISE.IS",
+        height=150
+    )
+    
+    tickers = [t.strip().upper() for t in tickers_input.split('\n') if t.s
