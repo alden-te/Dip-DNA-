@@ -1,10 +1,9 @@
 streamlit
-yfinance
-pandas
-numpy
-scikit-learn
-plotly
-tqdm
-tradingview-screener
-scipy
-openpyxl
+   yfinance
+   pandas
+   numpy
+   scikit-learn
+   plotly
+   tqdm
+   scipy
+   openpyxl
