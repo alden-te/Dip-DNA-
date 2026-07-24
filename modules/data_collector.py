@@ -7,14 +7,11 @@ import time
 from tqdm import tqdm
 
 class DataCollector:
-    """Profesyonel veri toplama sınıfı"""
-    
     def __init__(self):
         self.cache = {}
         self.cache_duration = timedelta(minutes=30)
     
     def get_all_bist_tickers(self):
-        """Tüm BIST hisselerini getir"""
         try:
             symbols = get_all_symbols(market='turkey')
             tickers = [s.split(':')[1] + '.IS' for s in symbols if 'BIST:' in s]
@@ -24,10 +21,8 @@ class DataCollector:
             return ["THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS", "SISE.IS"]
     
     def download_stock_data(self, ticker, period="10y", start_date=None, end_date=None):
-        """Hisse verisini indir ve temizle"""
         cache_key = f"{ticker}_{period}_{start_date}_{end_date}"
         
-        # Cache kontrolü
         if cache_key in self.cache:
             data, timestamp = self.cache[cache_key]
             if datetime.now() - timestamp < self.cache_duration:
@@ -42,11 +37,9 @@ class DataCollector:
             if df.empty or len(df) < 100:
                 return None
             
-            # MultiIndex temizliği
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
             
-            # Volume ve OHLC düzeltme
             if isinstance(df['Volume'], pd.DataFrame):
                 df['Volume'] = df['Volume'].iloc[:, 0]
             
@@ -59,7 +52,6 @@ class DataCollector:
             if len(df) < 100:
                 return None
             
-            # Cache'e kaydet
             self.cache[cache_key] = (df, datetime.now())
             
             return df
@@ -69,7 +61,6 @@ class DataCollector:
             return None
     
     def download_multiple_stocks(self, tickers, period="10y", show_progress=True):
-        """Çoklu hisse indir"""
         all_data = {}
         
         iterator = tqdm(tickers, desc="Veri indiriliyor") if show_progress else tickers
