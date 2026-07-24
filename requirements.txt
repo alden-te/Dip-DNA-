@@ -2,6 +2,7 @@ streamlit
 yfinance
 pandas
 numpy
+pandas-ta
 scikit-learn
 plotly
 tqdm
