@@ -9,13 +9,13 @@ import yfinance as yf
 
 warnings.filterwarnings('ignore')
 
-# ============================================================================
-# BÖLÜM 1: YARDIMCI FONKSİYONLAR
-# ============================================================================
+st.set_page_config(page_title="Dip DNA Analiz", page_icon="", layout="wide")
+
+st.title("🚀 Dip DNA Analiz Sistemi")
+st.markdown("80-80 Pivot + Manuel İndikatörler")
 
 @st.cache_data(ttl=3600)
-def get_all_bist_tickers():
-    # tradingview_screener kaldırıldı, yerine güvenilir ve kapsamlı bir BIST listesi konuldu
+def get_bist_tickers():
     return [
         "THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS", "SISE.IS",
         "AKBNK.IS", "HALKB.IS", "ISCTR.IS", "YKBNK.IS", "SAHOL.IS",
@@ -64,10 +64,6 @@ def find_80_80_pivots(df):
 
 def is_business_day(date_str):
     return pd.to_datetime(date_str).weekday() < 5
-
-# ============================================================================
-# BÖLÜM 2: İNDİKATÖR HESAPLAMA (pandas-ta OLMADAN)
-# ============================================================================
 
 def calc_rsi(series, period=14):
     delta = series.diff()
@@ -149,10 +145,6 @@ def add_indicators(df):
     df['Volume_SMA_20'] = df['Volume'].rolling(20).mean()
     return df
 
-# ============================================================================
-# BÖLÜM 3: VERİ ÇEKME VE DİP ANALİZİ
-# ============================================================================
-
 def download_stock(ticker, period="10y"):
     try:
         df = yf.download(ticker, period=period, progress=False, timeout=15)
@@ -169,7 +161,7 @@ def download_stock(ticker, period="10y"):
         if len(df) < 300:
             return None
         return df
-    except:
+    except Exception as e:
         return None
 
 def analyze_dip(df, dip_idx):
@@ -234,10 +226,6 @@ def process_stock(ticker, period="10y"):
         return df, None
     return df, pd.DataFrame(dips)
 
-# ============================================================================
-# BÖLÜM 4: CANLI TARAMA
-# ============================================================================
-
 def find_live_signals(ticker, lookback_days=30):
     df = download_stock(ticker, period="6mo")
     if df is None:
@@ -294,32 +282,6 @@ def find_live_signals(ticker, lookback_days=30):
             })
     return signals
 
-# ============================================================================
-# BÖLÜM 5: STREAMLIT ARAYÜZÜ
-# ============================================================================
-
-st.set_page_config(
-    page_title="Ultra Pro Dip Analiz Sistemi",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-st.markdown("""
-<style>
-.main-header {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #1E88E5;
-    text-align: center;
-    margin-bottom: 2rem;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown('<div class="main-header">🚀 ULTRA PRO DİP ANALİZ SİSTEMİ</div>', unsafe_allow_html=True)
-st.markdown("---")
-
 with st.sidebar:
     st.header("⚙️ Ayarlar")
     analysis_mode = st.radio(
@@ -340,11 +302,7 @@ with st.sidebar:
         )
     period = st.selectbox("Veri Periyodu", ["5y", "10y", "15y", "20y"], index=1)
     st.markdown("---")
-    st.info("💡 80-80 pivot tespiti kullanılır. Her dip için detaylı analiz yapılır.")
-
-# ============================================================================
-# MOD 1: TEK HİSSE ANALİZİ
-# ============================================================================
+    st.info(" 80-80 pivot tespiti kullanılır.")
 
 if analysis_mode == "Tek Hisse Analizi":
     st.header(f"🔍 {ticker_input} Detaylı Dip Analizi")
@@ -359,7 +317,7 @@ if analysis_mode == "Tek Hisse Analizi":
             col3.metric("Ort. RSI", f"{dips_df['rsi'].mean():.1f}")
             col4.metric("Ort. 20G Getiri", f"{dips_df['ret_20d'].mean():.1f}%")
             st.markdown("---")
-            tab1, tab2, tab3 = st.tabs(["📊 Tüm Dipler", "🎯 Güncel Sinyaller", "📈 Grafik"])
+            tab1, tab2, tab3 = st.tabs([" Tüm Dipler", "🎯 Güncel Sinyaller", "📈 Grafik"])
             with tab1:
                 st.subheader("Bulunan Dipler ve Sonrası Performans")
                 display_df = dips_df[['date', 'price', 'rsi', 'mfi', 'stoch', 'willr', 'ma_tangle', 'vol_ratio', 'price_pos', 'ret_20d', 'is_successful']].copy()
@@ -403,10 +361,6 @@ if analysis_mode == "Tek Hisse Analizi":
         else:
             st.warning(f"⚠️ {ticker_input} için yeterli veri veya 80-80 pivot dibi bulunamadı.")
 
-# ============================================================================
-# MOD 2: ÇOKLU HİSSE TARAMA
-# ============================================================================
-
 elif analysis_mode == "Çoklu Hisse Tarama":
     st.header("🔍 Çoklu Hisse Tarama")
     tickers_list = [t.strip().upper() for t in tickers_text.split('\n') if t.strip()]
@@ -434,17 +388,13 @@ elif analysis_mode == "Çoklu Hisse Tarama":
             csv = master_df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8')
             st.download_button("📥 Tüm Veriyi İndir (CSV)", data=csv, file_name=f"tum_dip_analizleri_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv")
         else:
-            st.warning("⚠️ Hiçbir hisse için dip bulunamadı.")
-
-# ============================================================================
-# MOD 3: TÜM BIST TARAMA
-# ============================================================================
+            st.warning("️ Hiçbir hisse için dip bulunamadı.")
 
 elif analysis_mode == "Tüm BIST Tarama":
     st.header("🌟 Tüm BIST Tarama")
     st.warning("⚠️ Bu işlem ~200 hisse için çalışır ve 3-5 dakika sürebilir.")
     if st.button("Tüm BIST'i Tara", type="primary"):
-        all_tickers = get_all_bist_tickers()
+        all_tickers = get_bist_tickers()
         st.write(f"Toplam {len(all_tickers)} hisse taranacak...")
         progress_bar = st.progress(0)
         all_results = []
@@ -452,4 +402,28 @@ elif analysis_mode == "Tüm BIST Tarama":
         for i, t in enumerate(all_tickers):
             try:
                 df, dips_df = process_stock(t, period)
-  
+                if dips_df is not None and not dips_df.empty:
+                    all_results.append(dips_df)
+            except Exception as e:
+                pass
+            if i % 10 == 0:
+                progress_bar.progress((i + 1) / len(all_tickers))
+        progress_bar.progress(1.0)
+        elapsed = time.time() - start_time
+        st.success(f"✅ Tarama tamamlandı! Süre: {elapsed:.0f} saniye. {len(all_results)} hisse için dip bulundu.")
+        if all_results:
+            master_df = pd.concat(all_results, ignore_index=True)
+            st.subheader("🏆 En Çok Başarılı Dip Üreten Hisseler")
+            summary = master_df.groupby('ticker').agg(
+                Dip_Sayisi=('ticker', 'count'),
+                Basarili_Dip=('is_successful', 'sum'),
+                Basari_Orani=('is_successful', lambda x: f"{x.mean()*100:.1f}%"),
+                Ort_RSI=('rsi', 'mean'),
+                Ort_20G_Getiri=('ret_20d', 'mean')
+            ).sort_values('Basarili_Dip', ascending=False).reset_index()
+            st.dataframe(summary.head(50), use_container_width=True)
+            csv = master_df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8')
+            st.download_button("📥 Tüm BIST Verisini İndir (CSV)", data=csv, file_name=f"bist_tum_dipler_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv")
+
+st.markdown("---")
+st.markdown("<div style='text-align: center; color: gray;'><p>Dip DNA Analiz Sistemi v2.0</p></div>", unsafe_allow_html=True)
